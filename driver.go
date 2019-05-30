@@ -5,6 +5,8 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"sync"
+
+	"github.com/go-xorm/core"
 )
 
 var pool *mockDriver
@@ -14,12 +16,21 @@ func init() {
 		conns: make(map[string]*sqlmock),
 	}
 	sql.Register("sqlmock", pool)
+	core.RegisterDriver("sqlmock", pool)
+	core.RegisterDialect("sqlmock", func() core.Dialect { return &mysql{} })
 }
 
 type mockDriver struct {
 	sync.Mutex
 	counter int
 	conns   map[string]*sqlmock
+}
+
+func (d *mockDriver) Parse(dr string, dns string) (*core.Uri, error) {
+	return &core.Uri{
+		DbType: "sqlmock",
+		Raddr:  dns,
+	}, nil
 }
 
 func (d *mockDriver) Open(dsn string) (driver.Conn, error) {
