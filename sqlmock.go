@@ -74,17 +74,19 @@ type Sqlmock interface {
 	// sql driver.Value slice or from the CSV string and
 	// to be used as sql driver.Rows.
 	NewRows(columns []string) *Rows
+	// AllowRepeatTrigger 允许重复匹配
+	AllowRepeatTrigger(bool)
 }
 
 type sqlmock struct {
-	ordered      bool
-	dsn          string
-	opened       int
-	drv          *mockDriver
-	converter    driver.ValueConverter
-	queryMatcher QueryMatcher
-
-	expected []expectation
+	ordered            bool
+	dsn                string
+	opened             int
+	drv                *mockDriver
+	converter          driver.ValueConverter
+	queryMatcher       QueryMatcher
+	allowRepeatTrigger bool
+	expected           []expectation
 }
 
 func (c *sqlmock) open(options []func(*sqlmock) error) (*sql.DB, Sqlmock, error) {
@@ -159,7 +161,9 @@ func (c *sqlmock) Close() error {
 		return fmt.Errorf(msg)
 	}
 
-	expected.triggered = true
+	if !c.allowRepeatTrigger {
+		expected.triggered = true
+	}
 	expected.Unlock()
 	return expected.err
 }
@@ -233,7 +237,9 @@ func (c *sqlmock) begin() (*ExpectedBegin, error) {
 		return nil, fmt.Errorf(msg)
 	}
 
-	expected.triggered = true
+	if !c.allowRepeatTrigger {
+		expected.triggered = true
+	}
 	expected.Unlock()
 
 	return expected, expected.err
@@ -315,7 +321,9 @@ func (c *sqlmock) exec(query string, args []namedValue) (*ExpectedExec, error) {
 		return nil, fmt.Errorf("ExecQuery '%s', arguments do not match: %s", query, err)
 	}
 
-	expected.triggered = true
+	if !c.allowRepeatTrigger {
+		expected.triggered = true
+	}
 	if expected.err != nil {
 		return expected, expected.err // mocked to return error
 	}
@@ -390,8 +398,9 @@ func (c *sqlmock) prepare(query string) (*ExpectedPrepare, error) {
 	if err := c.queryMatcher.Match(expected.expectSQL, query); err != nil {
 		return nil, fmt.Errorf("Prepare: %v", err)
 	}
-
-	expected.triggered = true
+	if !c.allowRepeatTrigger {
+		expected.triggered = true
+	}
 	return expected, expected.err
 }
 
@@ -478,7 +487,9 @@ func (c *sqlmock) query(query string, args []namedValue) (*ExpectedQuery, error)
 		return nil, fmt.Errorf("Query '%s', arguments do not match: %s", query, err)
 	}
 
-	expected.triggered = true
+	if !c.allowRepeatTrigger {
+		expected.triggered = true
+	}
 	if expected.err != nil {
 		return expected, expected.err // mocked to return error
 	}
@@ -539,7 +550,9 @@ func (c *sqlmock) Commit() error {
 		return fmt.Errorf(msg)
 	}
 
-	expected.triggered = true
+	if !c.allowRepeatTrigger {
+		expected.triggered = true
+	}
 	expected.Unlock()
 	return expected.err
 }
@@ -574,7 +587,9 @@ func (c *sqlmock) Rollback() error {
 		return fmt.Errorf(msg)
 	}
 
-	expected.triggered = true
+	if !c.allowRepeatTrigger {
+		expected.triggered = true
+	}
 	expected.Unlock()
 	return expected.err
 }
