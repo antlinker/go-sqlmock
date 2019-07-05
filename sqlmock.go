@@ -118,6 +118,9 @@ func (c *sqlmock) ExpectClose() *ExpectedClose {
 func (c *sqlmock) MatchExpectationsInOrder(b bool) {
 	c.ordered = b
 }
+func (c *sqlmock) AllowRepeatTrigger(b bool) {
+	c.allowRepeatTrigger = b
+}
 
 // Close a mock database driver connection. It may or may not
 // be called depending on the circumstances, but if it is called
